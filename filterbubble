@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="ko">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>필터버블 탈출 게임</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100%;
+      width: 100%;
+    }
+
+    .app-wrapper {
+      width: 100%;
+      min-height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .game-container {
+      background: white;
+      border-radius: 20px;
+      padding: 2.5rem;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: #667eea;
+      text-align: center;
+      margin: 0 0 1rem 0;
+      font-size: 2rem;
+    }
+
+    .instruction {
+      text-align: center;
+      color: #555;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-radius: 12px;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: #777;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .choice-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 1.5rem 1rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-weight: 600;
+    }
+
+    .choice-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .choice-btn:active {
+      transform: translateY(0);
+    }
+
+    .explore-btn {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      grid-column: 1 / -1;
+      padding: 1.5rem;
+    }
+
+    .explore-btn:hover {
+      box-shadow: 0 8px 20px rgba(245, 87, 108, 0.4);
+    }
+
+    .result {
+      text-align: center;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-top: 1.5rem;
+      display: none;
+      animation: fadeIn 0.5s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .result.success {
+      background: #d4edda;
+      border: 2px solid #28a745;
+      color: #155724;
+      display: block;
+    }
+
+    .result.fail {
+      background: #f8d7da;
+      border: 2px solid #dc3545;
+      color: #721c24;
+      display: block;
+    }
+
+    .result-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .result-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-message {
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .reset-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 1.5rem;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+
+    .reset-btn:hover {
+      background: #5568d3;
+    }
+
+    .choice-history {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .choice-badge {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .game-hidden {
+      display: none;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="app-wrapper">
+   <main class="game-container">
+    <h1 id="game-title">필터버블 탈출 게임 🎯</h1>
+    <p class="instruction" id="instruction-text">10번의 선택을 하세요! 한 가지 콘텐츠를 5번 이상 선택하면 필터버블에 갇힙니다. 다양한 콘텐츠를 선택하거나 '새로운 주제 탐색하기'를 3번 이상 클릭하여 탈출하세요!</p>
+    <div class="stats">
+     <div class="stat-item">
+      <div class="stat-label">
+       선택 횟수
+      </div>
+      <div class="stat-value" id="turn-count">
+       0/10
+      </div>
+     </div>
+     <div class="stat-item">
+      <div class="stat-label">
+       새 주제 탐색
+      </div>
+      <div class="stat-value" id="explore-count">
+       0
+      </div>
+     </div>
+    </div>
+    <div id="game-area">
+     <div class="choices"><button class="choice-btn" data-choice="cat">🐱 고양이 영상</button> <button class="choice-btn" data-choice="sports">⚽ 스포츠 영상</button> <button class="choice-btn" data-choice="celeb">⭐ 연예인 영상</button> <button class="choice-btn" data-choice="art">🎨 미술음악 영상</button> <button class="choice-btn explore-btn" data-choice="explore">🔍 새로운 주제 탐색하기</button>
+     </div>
+     <div class="choice-history" id="choice-history"></div>
+    </div>
+    <div class="result" id="result-area">
+     <div class="result-icon" id="result-icon"></div>
+     <div class="result-title" id="result-title"></div>
+     <div class="result-message" id="result-message"></div><button class="reset-btn" id="reset-btn">다시 도전하기</button>
+    </div>
+   </main>
+  </div>
+  <script>
+    const defaultConfig = {
+      game_title: "필터버블 탈출 게임 🎯",
+      instruction_text: "10번의 선택을 하세요! 한 가지 콘텐츠를 5번 이상 선택하면 필터버블에 갇힙니다. 다양한 콘텐츠를 선택하거나 '새로운 주제 탐색하기'를 3번 이상 클릭하여 탈출하세요!"
+    };
+
+    let gameState = {
+      turn: 0,
+      choices: {
+        cat: 0,
+        sports: 0,
+        celeb: 0,
+        art: 0,
+        explore: 0
+      },
+      history: []
+    };
+
+    const choiceLabels = {
+      cat: "🐱 고양이",
+      sports: "⚽ 스포츠",
+      celeb: "⭐ 연예인",
+      art: "🎨 미술음악",
+      explore: "🔍 새주제"
+    };
+
+    function updateStats() {
+      document.getElementById('turn-count').textContent = `${gameState.turn}/10`;
+      document.getElementById('explore-count').textContent = gameState.choices.explore;
+    }
+
+    function updateHistory() {
+      const historyDiv = document.getElementById('choice-history');
+      historyDiv.innerHTML = '';
+      gameState.history.forEach(choice => {
+        const badge = document.createElement('div');
+        badge.className = 'choice-badge';
+        badge.textContent = choiceLabels[choice];
+        historyDiv.appendChild(badge);
+      });
+    }
+
+    function checkGameEnd() {
+      if (gameState.turn < 10) return;
+
+      const resultArea = document.getElementById('result-area');
+      const gameArea = document.getElementById('game-area');
+      const resultIcon = document.getElementById('result-icon');
+      const resultTitle = document.getElementById('result-title');
+      const resultMessage = document.getElementById('result-message');
+
+      gameArea.classList.add('game-hidden');
+
+      // 필터버블 갇힘 조건: 한 가지를 5번 이상
+      const maxChoice = Math.max(
+        gameState.choices.cat,
+        gameState.choices.sports,
+        gameState.choices.celeb,
+        gameState.choices.art
+      );
+
+      const trapped = maxChoice >= 5;
+      const exploreEnough = gameState.choices.explore >= 3;
+
+      if (trapped) {
+        resultArea.className = 'result fail';
+        resultIcon.textContent = '😱';
+        resultTitle.textContent = '필터버블에 갇혔습니다!';
+        resultMessage.textContent = `한 가지 콘텐츠를 ${maxChoice}번이나 선택했어요. 다양한 콘텐츠를 접해보는 것이 중요합니다!`;
+      } else if (exploreEnough) {
+        resultArea.className = 'result success';
+        resultIcon.textContent = '🎉';
+        resultTitle.textContent = '필터버블 탈출 성공!';
+        resultMessage.textContent = `새로운 주제를 ${gameState.choices.explore}번 탐색하며 다양한 관점을 유지했어요. 훌륭합니다!`;
+      } else {
+        resultArea.className = 'result success';
+        resultIcon.textContent = '✨';
+        resultTitle.textContent = '필터버블 탈출 성공!';
+        resultMessage.textContent = '다양한 콘텐츠를 균형있게 선택했어요. 열린 시각을 유지하셨습니다!';
+      }
+    }
+
+    function handleChoice(choice) {
+      if (gameState.turn >= 10) return;
+
+      gameState.turn++;
+      gameState.choices[choice]++;
+      gameState.history.push(choice);
+
+      updateStats();
+      updateHistory();
+      checkGameEnd();
+    }
+
+    function resetGame() {
+      gameState = {
+        turn: 0,
+        choices: {
+          cat: 0,
+          sports: 0,
+          celeb: 0,
+          art: 0,
+          explore: 0
+        },
+        history: []
+      };
+
+      document.getElementById('result-area').className = 'result';
+      document.getElementById('game-area').classList.remove('game-hidden');
+      updateStats();
+      updateHistory();
+    }
+
+    // Event listeners
+    document.querySelectorAll('.choice-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const choice = e.currentTarget.dataset.choice;
+        handleChoice(choice);
+      });
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', resetGame);
+
+    // Element SDK implementation
+    async function onConfigChange(config) {
+      const gameTitle = config.game_title || defaultConfig.game_title;
+      const instructionText = config.instruction_text || defaultConfig.instruction_text;
+
+      document.getElementById('game-title').textContent = gameTitle;
+      document.getElementById('instruction-text').textContent = instructionText;
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ["game_title", config.game_title || defaultConfig.game_title],
+        ["instruction_text", config.instruction_text || defaultConfig.instruction_text]
+      ]);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    }
+
+    // Initialize
+    updateStats();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a8141dca762ea2c',t:'MTc2NDc0NTk2My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
